@@ -5,9 +5,9 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_DATABASE: 'syarah'   
+      MYSQL_DATABASE: 'syarah'
       MYSQL_USER: 'kakarot'
-      MYSQL_PASSWORD: 'kakarot'      
+      MYSQL_PASSWORD: 'kakarot'
       MYSQL_ROOT_PASSWORD: 'root'
     ports:
       - '3307:3306'
@@ -30,7 +30,7 @@ services:
       PMA_ARBITRARY: 1
 
   mongo:
-    image: mongo
+    image: mongo:2.2
     restart: always
     ports:
       - '27018:27017'
@@ -38,11 +38,47 @@ services:
       MONGO_INITDB_DATABASE: yii2logs
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
-    volumes: 
+    volumes:
       - mongodbdata:/data/db
       - ./init-mongo.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    # version: "2.2"
+
+  # Elasticsearch Docker Images: https://www.docker.elastic.co/
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    container_name: elasticsearch
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - network.host=0.0.0.0
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+
+  kibana:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    environment:
+      - ELASTICSEARCH_URL=http://localhost:9200
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
 
 volumes:
   mysql-data:
   mongodbdata:
+    driver: local
+  elasticsearch-data:
     driver: local
